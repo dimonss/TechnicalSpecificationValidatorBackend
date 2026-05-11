@@ -2,7 +2,14 @@ import type { FastifyPluginAsync } from 'fastify';
 import { idealSpecTemplate } from '../../../shared/prompts/idealSpecTemplate.ts';
 import { ValidationError } from '../../../shared/errors/AppError.ts';
 import type { ValidateSpecService } from '../model/service.ts';
-import { validateRequestSchema } from './schema.ts';
+import {
+  errorResponseJsonSchema,
+  healthResponseJsonSchema,
+  templateResponseJsonSchema,
+  validateRequestJsonSchema,
+  validateRequestSchema,
+  validateResponseJsonSchema,
+} from './schema.ts';
 
 export interface ValidateSpecRouteOptions {
   service: ValidateSpecService;
@@ -12,24 +19,68 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
   fastify,
   { service },
 ) => {
-  fastify.post('/api/validate', async (request, reply) => {
-    const parsed = validateRequestSchema.safeParse(request.body);
-    if (!parsed.success) {
-      const message =
-        parsed.error.issues.map((i) => i.message).join('; ') ||
-        'Некорректное тело запроса';
-      throw new ValidationError(message);
-    }
+  fastify.post(
+    '/api/validate',
+    {
+      schema: {
+        tags: ['Validation'],
+        summary: 'Validate a technical specification',
+        description:
+          'Sends the technical specification text to Gemini and returns validation feedback in Markdown.',
+        body: validateRequestJsonSchema,
+        response: {
+          200: validateResponseJsonSchema,
+          400: errorResponseJsonSchema,
+          500: errorResponseJsonSchema,
+          502: errorResponseJsonSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const parsed = validateRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        const message =
+          parsed.error.issues.map((i) => i.message).join('; ') ||
+          'Некорректное тело запроса';
+        throw new ValidationError(message);
+      }
 
-    const result = await service.validate(parsed.data.text);
-    return reply.send(result);
-  });
+      const result = await service.validate(parsed.data.text);
+      return reply.send(result);
+    },
+  );
 
-  fastify.get('/api/template', async (_request, reply) => {
-    return reply.send({ markdown: idealSpecTemplate });
-  });
+  fastify.get(
+    '/api/template',
+    {
+      schema: {
+        tags: ['Template'],
+        summary: 'Get the reference technical specification template',
+        response: {
+          200: templateResponseJsonSchema,
+          500: errorResponseJsonSchema,
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.send({ markdown: idealSpecTemplate });
+    },
+  );
 
-  fastify.get('/api/health', async (_request, reply) => {
-    return reply.send({ status: 'ok' });
-  });
+  fastify.get(
+    '/api/health',
+    {
+      schema: {
+        tags: ['Health'],
+        summary: 'Check API health',
+        response: {
+          200: healthResponseJsonSchema,
+          500: errorResponseJsonSchema,
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.send({ status: 'ok' });
+    },
+  );
 };

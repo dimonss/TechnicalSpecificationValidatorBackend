@@ -9,6 +9,7 @@ All AI logic lives here; the frontend talks to it over plain REST.
 - Node.js 24 (via NVM)
 - TypeScript 5 (strict, NodeNext modules, `rewriteRelativeImportExtensions`)
 - Fastify 5 + `@fastify/cors`
+- Swagger/OpenAPI — `@fastify/swagger` + `@fastify/swagger-ui`
 - Google Gemini SDK — `@google/genai`
 - Zod 4 — env + request validation
 - Pino (Fastify default) — structured logging
@@ -54,6 +55,8 @@ Common errors:
 - `400 VALIDATION_ERROR` — empty / oversized text
 - `502 GEMINI_ERROR` — upstream Gemini failure
 - `500 INTERNAL_ERROR` — anything unexpected
+
+Interactive Swagger/OpenAPI docs are available at `http://localhost:3001/docs` when the backend is running. The OpenAPI JSON is exposed by the Swagger UI plugin at `http://localhost:3001/docs/json`.
 
 ## Getting started
 

@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import type { Env } from '../shared/config/env.ts';
 import { AppError } from '../shared/errors/AppError.ts';
 import {
@@ -23,6 +25,29 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
   await fastify.register(cors, {
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map((s) => s.trim()),
     methods: ['GET', 'POST'],
+  });
+
+  await fastify.register(swagger, {
+    openapi: {
+      info: {
+        title: 'Technical Specification Validator API',
+        description: 'REST API for validating technical specification text with Google Gemini.',
+        version: '1.0.0',
+      },
+      tags: [
+        { name: 'Health', description: 'Service health checks' },
+        { name: 'Template', description: 'Reference technical specification template' },
+        { name: 'Validation', description: 'Technical specification validation' },
+      ],
+    },
+  });
+
+  await fastify.register(swaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: {
+      deepLinking: true,
+      docExpansion: 'list',
+    },
   });
 
   fastify.setErrorHandler((error, request, reply) => {

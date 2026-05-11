@@ -24,3 +24,73 @@ export const templateResponseSchema = z.object({
 });
 
 export type TemplateResponseBody = z.infer<typeof templateResponseSchema>;
+
+export const errorResponseJsonSchema = {
+  type: 'object',
+  required: ['error'],
+  additionalProperties: false,
+  properties: {
+    error: {
+      type: 'object',
+      required: ['code', 'message'],
+      additionalProperties: false,
+      properties: {
+        code: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  },
+} as const;
+
+export const healthResponseJsonSchema = {
+  type: 'object',
+  required: ['status'],
+  additionalProperties: false,
+  properties: {
+    status: { type: 'string', const: 'ok' },
+  },
+} as const;
+
+export const templateResponseJsonSchema = {
+  type: 'object',
+  required: ['markdown'],
+  additionalProperties: false,
+  properties: {
+    markdown: { type: 'string' },
+  },
+} as const;
+
+export const validateRequestJsonSchema = {
+  type: 'object',
+  required: ['text'],
+  additionalProperties: false,
+  properties: {
+    text: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 50_000,
+      description: 'Technical specification text to validate.',
+    },
+  },
+} as const;
+
+export const validateResponseJsonSchema = {
+  type: 'object',
+  required: ['markdown', 'meta'],
+  additionalProperties: false,
+  properties: {
+    markdown: { type: 'string' },
+    meta: {
+      type: 'object',
+      required: ['model', 'durationMs'],
+      additionalProperties: false,
+      properties: {
+        model: { type: 'string' },
+        durationMs: {
+          type: 'integer',
+          minimum: 0,
+        },
+      },
+    },
+  },
+} as const;
