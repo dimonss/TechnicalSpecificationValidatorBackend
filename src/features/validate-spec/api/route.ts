@@ -6,6 +6,7 @@ import {
   errorResponseJsonSchema,
   healthResponseJsonSchema,
   templateResponseJsonSchema,
+  usageResponseJsonSchema,
   validateRequestJsonSchema,
   validateRequestSchema,
   validateResponseJsonSchema,
@@ -31,6 +32,7 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
         response: {
           200: validateResponseJsonSchema,
           400: errorResponseJsonSchema,
+          429: errorResponseJsonSchema,
           500: errorResponseJsonSchema,
           502: errorResponseJsonSchema,
         },
@@ -45,8 +47,27 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
         throw new ValidationError(message);
       }
 
-      const result = await service.validate(parsed.data.text);
+      const clientKey = request.ip;
+      const result = await service.validate(parsed.data.text, clientKey);
       return reply.send(result);
+    },
+  );
+
+  fastify.get(
+    '/api/usage',
+    {
+      schema: {
+        tags: ['Quota'],
+        summary: 'Get request usage and quota details',
+        response: {
+          200: usageResponseJsonSchema,
+          500: errorResponseJsonSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const clientKey = request.ip;
+      return reply.send(service.getUsage(clientKey));
     },
   );
 
@@ -84,3 +105,4 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
     },
   );
 };
+

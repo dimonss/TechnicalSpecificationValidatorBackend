@@ -6,6 +6,7 @@ import type { Env } from '../shared/config/env.ts';
 import { AppError } from '../shared/errors/AppError.ts';
 import {
   GeminiClient,
+  QuotaService,
   ValidateSpecService,
   validateSpecRoute,
 } from '../features/validate-spec/index.ts';
@@ -36,6 +37,7 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
       },
       tags: [
         { name: 'Health', description: 'Service health checks' },
+        { name: 'Quota', description: 'Request quota and usage' },
         { name: 'Template', description: 'Reference technical specification template' },
         { name: 'Validation', description: 'Technical specification validation' },
       ],
@@ -71,9 +73,11 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
   });
 
   const gemini = new GeminiClient(env.GEMINI_API_KEY, env.GEMINI_MODEL);
-  const service = new ValidateSpecService(gemini);
+  const quotaService = new QuotaService();
+  const service = new ValidateSpecService(gemini, quotaService);
 
   await fastify.register(validateSpecRoute, { service });
 
   return fastify;
 };
+

@@ -23,3 +23,11 @@ export class GeminiError extends AppError {
     this.name = 'GeminiError';
   }
 }
+
+export class QuotaExceededError extends AppError {
+  constructor(message = 'Дневной лимит запросов исчерпан') {
+    super(message, 429, 'QUOTA_EXCEEDED');
+    this.name = 'QuotaExceededError';
+  }
+}
+

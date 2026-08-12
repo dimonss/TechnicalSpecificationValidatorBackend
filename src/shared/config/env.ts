@@ -14,10 +14,7 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-let cached: Env | null = null;
-
 export const loadEnv = (): Env => {
-  if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     const issues = parsed.error.issues
@@ -25,6 +22,5 @@ export const loadEnv = (): Env => {
       .join('\n');
     throw new Error(`Invalid environment variables:\n${issues}`);
   }
-  cached = parsed.data;
-  return cached;
+  return parsed.data;
 };
