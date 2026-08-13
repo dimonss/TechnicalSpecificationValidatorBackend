@@ -73,10 +73,14 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
   });
 
   const gemini = new GeminiClient(env.GEMINI_API_KEY, env.GEMINI_MODEL);
-  const quotaService = new QuotaService();
+  const quotaService = new QuotaService(env.DAILY_REQUEST_LIMIT);
   const service = new ValidateSpecService(gemini, quotaService);
 
-  await fastify.register(validateSpecRoute, { service });
+  await fastify.register(validateSpecRoute, {
+    service,
+    jwtSecret: env.JWT_SECRET,
+    whitelistUsers: env.WHITELIST_USERS,
+  });
 
   return fastify;
 };

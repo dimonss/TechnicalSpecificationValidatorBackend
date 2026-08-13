@@ -3,6 +3,7 @@ export interface UsageInfo {
   used: number;
   remaining: number;
   resetsAt: string;
+  unlimited?: boolean;
 }
 
 interface ClientUsage {
@@ -10,11 +11,13 @@ interface ClientUsage {
   resetAtMs: number;
 }
 
+export const UNLIMITED_LIMIT = 999_999;
+
 export class QuotaService {
   private readonly defaultLimit: number;
   private clients = new Map<string, ClientUsage>();
 
-  constructor(defaultLimit = 20) {
+  constructor(defaultLimit = 5) {
     this.defaultLimit = defaultLimit;
   }
 
@@ -51,27 +54,52 @@ export class QuotaService {
     return usage;
   }
 
-  getUsage(key?: string): UsageInfo {
+  getUsage(key?: string, isUnlimited?: boolean): UsageInfo {
     const clientKey = this.getClientKey(key);
     const usage = this.getOrResetClientUsage(clientKey);
+
+    if (isUnlimited) {
+      return {
+        limit: UNLIMITED_LIMIT,
+        used: usage.used,
+        remaining: UNLIMITED_LIMIT,
+        resetsAt: new Date(usage.resetAtMs).toISOString(),
+        unlimited: true,
+      };
+    }
+
     const remaining = Math.max(0, this.defaultLimit - usage.used);
     return {
       limit: this.defaultLimit,
       used: usage.used,
       remaining,
       resetsAt: new Date(usage.resetAtMs).toISOString(),
+      unlimited: false,
     };
   }
 
-  consume(key?: string): UsageInfo {
+  consume(key?: string, isUnlimited?: boolean): UsageInfo {
     const clientKey = this.getClientKey(key);
     const usage = this.getOrResetClientUsage(clientKey);
+
+    if (isUnlimited) {
+      usage.used += 1;
+      return {
+        limit: UNLIMITED_LIMIT,
+        used: usage.used,
+        remaining: UNLIMITED_LIMIT,
+        resetsAt: new Date(usage.resetAtMs).toISOString(),
+        unlimited: true,
+      };
+    }
+
     if (usage.used >= this.defaultLimit) {
       return {
         limit: this.defaultLimit,
         used: usage.used,
         remaining: 0,
         resetsAt: new Date(usage.resetAtMs).toISOString(),
+        unlimited: false,
       };
     }
     usage.used += 1;
@@ -81,6 +109,7 @@ export class QuotaService {
       used: usage.used,
       remaining,
       resetsAt: new Date(usage.resetAtMs).toISOString(),
+      unlimited: false,
     };
   }
 }

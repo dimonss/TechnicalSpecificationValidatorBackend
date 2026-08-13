@@ -10,6 +10,9 @@ const envSchema = z.object({
     .default('info'),
   GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
   GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
+  DAILY_REQUEST_LIMIT: z.coerce.number().int().positive().default(5),
+  WHITELIST_USERS: z.string().default('DiChDev'),
+  JWT_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

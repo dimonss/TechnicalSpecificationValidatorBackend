@@ -10,13 +10,17 @@ export class ValidateSpecService {
     private readonly quotaService: QuotaService,
   ) {}
 
-  getUsage(clientKey?: string): UsageInfo {
-    return this.quotaService.getUsage(clientKey);
+  getUsage(clientKey?: string, isUnlimited?: boolean): UsageInfo {
+    return this.quotaService.getUsage(clientKey, isUnlimited);
   }
 
-  async validate(text: string, clientKey?: string): Promise<ValidationResult> {
-    const currentUsage = this.quotaService.getUsage(clientKey);
-    if (currentUsage.remaining <= 0) {
+  async validate(
+    text: string,
+    clientKey?: string,
+    isUnlimited?: boolean,
+  ): Promise<ValidationResult> {
+    const currentUsage = this.quotaService.getUsage(clientKey, isUnlimited);
+    if (!isUnlimited && currentUsage.remaining <= 0) {
       throw new QuotaExceededError('Дневной лимит запросов исчерпан');
     }
 
@@ -26,7 +30,7 @@ export class ValidateSpecService {
       userText: text,
     });
 
-    const updatedUsage = this.quotaService.consume(clientKey);
+    const updatedUsage = this.quotaService.consume(clientKey, isUnlimited);
 
     return {
       markdown,

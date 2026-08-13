@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { idealSpecTemplate } from '../../../shared/prompts/idealSpecTemplate.ts';
 import { ValidationError } from '../../../shared/errors/AppError.ts';
+import { getAuthContext } from '../../../shared/auth/authHelper.ts';
 import type { ValidateSpecService } from '../model/service.ts';
 import {
   errorResponseJsonSchema,
@@ -14,11 +15,13 @@ import {
 
 export interface ValidateSpecRouteOptions {
   service: ValidateSpecService;
+  jwtSecret?: string;
+  whitelistUsers?: string;
 }
 
 export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = async (
   fastify,
-  { service },
+  { service, jwtSecret, whitelistUsers },
 ) => {
   fastify.post(
     '/api/validate',
@@ -47,8 +50,18 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
         throw new ValidationError(message);
       }
 
-      const clientKey = request.ip;
-      const result = await service.validate(parsed.data.text, clientKey);
+      const authInfo = getAuthContext(
+        request.headers.authorization,
+        request.ip,
+        jwtSecret,
+        whitelistUsers,
+      );
+
+      const result = await service.validate(
+        parsed.data.text,
+        authInfo.clientKey,
+        authInfo.isWhitelisted,
+      );
       return reply.send(result);
     },
   );
@@ -66,8 +79,13 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
       },
     },
     async (request, reply) => {
-      const clientKey = request.ip;
-      return reply.send(service.getUsage(clientKey));
+      const authInfo = getAuthContext(
+        request.headers.authorization,
+        request.ip,
+        jwtSecret,
+        whitelistUsers,
+      );
+      return reply.send(service.getUsage(authInfo.clientKey, authInfo.isWhitelisted));
     },
   );
 

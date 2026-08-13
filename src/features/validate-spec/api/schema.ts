@@ -14,6 +14,7 @@ export const usageInfoSchema = z.object({
   used: z.number().int().nonnegative(),
   remaining: z.number().int().nonnegative(),
   resetsAt: z.string(),
+  unlimited: z.boolean().optional(),
 });
 
 export type UsageResponseBody = z.infer<typeof usageInfoSchema>;
@@ -79,6 +80,7 @@ export const usageResponseJsonSchema = {
     used: { type: 'integer', minimum: 0 },
     remaining: { type: 'integer', minimum: 0 },
     resetsAt: { type: 'string' },
+    unlimited: { type: 'boolean' },
   },
 } as const;
 
