@@ -45,7 +45,7 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
   });
 
   await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
+    routePrefix: '/api/docs',
     uiConfig: {
       deepLinking: true,
       docExpansion: 'list',
