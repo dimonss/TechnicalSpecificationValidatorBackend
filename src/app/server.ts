@@ -63,6 +63,25 @@ export const buildServer = async (env: Env): Promise<FastifyInstance> => {
       });
     }
 
+    const hasValidation =
+      error !== null &&
+      typeof error === 'object' &&
+      ('validation' in error ||
+        ('code' in error && (error as { code: unknown }).code === 'FST_ERR_VALIDATION'));
+
+    if (hasValidation) {
+      const message = error instanceof Error ? error.message : 'Ошибка валидации запроса';
+      request.log.warn({ err: error }, 'ValidationError');
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message,
+        },
+      });
+    }
+
+
+
     request.log.error({ err: error }, 'Unhandled error');
     return reply.status(500).send({
       error: {

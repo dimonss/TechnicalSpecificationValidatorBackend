@@ -3,5 +3,7 @@ export type {
   ValidationResult,
   ValidationMeta,
   UsageInfo,
+  ValidationStreamEvent,
 } from './model/types.ts';
+
 

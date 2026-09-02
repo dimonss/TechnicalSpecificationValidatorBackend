@@ -21,3 +21,8 @@ export interface ValidationResult {
   usage: UsageInfo;
 }
 
+export type ValidationStreamEvent =
+  | { type: 'chunk'; text: string }
+  | { type: 'done'; meta: ValidationMeta; usage: UsageInfo };
+
+

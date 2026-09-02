@@ -12,6 +12,12 @@ export interface GeminiGenerateResult {
   durationMs: number;
 }
 
+export interface GeminiGenerateStreamParams {
+  systemInstruction: string;
+  userText: string;
+  abortSignal?: AbortSignal;
+}
+
 export class GeminiClient {
   private readonly client: GoogleGenAI;
   private readonly model: string;
@@ -19,6 +25,10 @@ export class GeminiClient {
   constructor(apiKey: string, model: string) {
     this.client = new GoogleGenAI({ apiKey });
     this.model = model;
+  }
+
+  getModel(): string {
+    return this.model;
   }
 
   async generate({ systemInstruction, userText }: GeminiGenerateParams): Promise<GeminiGenerateResult> {
@@ -49,4 +59,40 @@ export class GeminiClient {
       throw new GeminiError(`Ошибка обращения к Gemini API: ${message}`);
     }
   }
+
+  async *generateStream({
+    systemInstruction,
+    userText,
+    abortSignal,
+  }: GeminiGenerateStreamParams): AsyncGenerator<string, void, unknown> {
+    try {
+      const responseStream = await this.client.models.generateContentStream({
+        model: this.model,
+        contents: userText,
+        config: {
+          systemInstruction,
+          temperature: 0.3,
+          abortSignal,
+        },
+      });
+
+      for await (const chunk of responseStream) {
+        if (abortSignal?.aborted) {
+          return;
+        }
+        const chunkText = chunk.text;
+        if (chunkText) {
+          yield chunkText;
+        }
+      }
+    } catch (error) {
+      if (abortSignal?.aborted) {
+        return;
+      }
+      if (error instanceof GeminiError) throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new GeminiError(`Ошибка обращения к Gemini API: ${message}`);
+    }
+  }
 }
+
