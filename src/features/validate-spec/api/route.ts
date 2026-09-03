@@ -110,16 +110,24 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
       reply.header('Connection', 'keep-alive');
       reply.header('X-Accel-Buffering', 'no');
 
+      const clientAbortController = new AbortController();
+      if (request.raw.socket) {
+        request.raw.socket.once('close', () => {
+          if (!reply.raw.writableEnded) {
+            clientAbortController.abort();
+          }
+        });
+      }
+
       async function* sseGenerator() {
         try {
           for await (const event of service.validateStream(
             validatedText,
             authInfo.clientKey,
             authInfo.isWhitelisted,
-            request.signal,
+            clientAbortController.signal,
           )) {
-
-            if (request.signal.aborted) break;
+            if (clientAbortController.signal.aborted) break;
 
             if (event.type === 'chunk') {
               yield `event: chunk\ndata: ${JSON.stringify({ text: event.text })}\n\n`;
@@ -128,7 +136,7 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
             }
           }
         } catch (err) {
-          if (!request.signal.aborted) {
+          if (!clientAbortController.signal.aborted) {
             request.log.error({ err }, 'Streaming validation error');
             const errorPayload = {
               error: {
@@ -144,6 +152,7 @@ export const validateSpecRoute: FastifyPluginAsync<ValidateSpecRouteOptions> = a
       return reply.send(Readable.from(sseGenerator()));
     },
   );
+
 
 
   fastify.get(
