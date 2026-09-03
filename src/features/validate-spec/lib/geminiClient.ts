@@ -18,6 +18,27 @@ export interface GeminiGenerateStreamParams {
   abortSignal?: AbortSignal;
 }
 
+function formatGeminiErrorMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (raw.includes('503') || raw.toLowerCase().includes('high demand') || raw.includes('UNAVAILABLE')) {
+    return 'Модель AI временно перегружена (503). Серверы испытывают пиковую нагрузку. Пожалуйста, повторите попытку через 10–30 секунд.';
+  }
+  if (raw.includes('429') || raw.includes('RESOURCE_EXHAUSTED')) {
+    return 'Превышен лимит запросов к Gemini API (429). Попробуйте позже.';
+  }
+  const matches = [...raw.matchAll(/"message"\s*:\s*"([^"]+)"/g)];
+  if (matches.length > 0) {
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const match = matches[i];
+      const candidate = match?.[1]?.replace(/\\n/g, ' ').replace(/\\"/g, '"').trim();
+      if (candidate && !candidate.startsWith('{') && candidate.length > 5) {
+        return candidate;
+      }
+    }
+  }
+  return `Ошибка обращения к Gemini API: ${raw}`;
+}
+
 export class GeminiClient {
   private readonly client: GoogleGenAI;
   private readonly model: string;
@@ -55,8 +76,7 @@ export class GeminiClient {
       };
     } catch (error) {
       if (error instanceof GeminiError) throw error;
-      const message = error instanceof Error ? error.message : String(error);
-      throw new GeminiError(`Ошибка обращения к Gemini API: ${message}`);
+      throw new GeminiError(formatGeminiErrorMessage(error));
     }
   }
 
@@ -90,9 +110,9 @@ export class GeminiClient {
         return;
       }
       if (error instanceof GeminiError) throw error;
-      const message = error instanceof Error ? error.message : String(error);
-      throw new GeminiError(`Ошибка обращения к Gemini API: ${message}`);
+      throw new GeminiError(formatGeminiErrorMessage(error));
     }
   }
 }
+
 
